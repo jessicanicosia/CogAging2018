@@ -1,0 +1,1703 @@
+---
+title: "Implicit Encoding Analysis v2"
+author: "Jessica Nicosia"
+date: "Updated 2/28/17"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 6
+  html_document:
+    toc: yes
+    toc_depth: 6
+    toc_float: yes
+  word_document:
+    toc: yes
+    toc_depth: '6'
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, collapse = TRUE, fig.show = 'hold')
+```
+
+```{r, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+# load packages
+suppressMessages(library(plyr))
+suppressMessages(library(dplyr))
+suppressMessages(library(tidyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(Rmisc))
+suppressMessages(library(psych))
+suppressMessages(library(ggthemes))
+suppressMessages(library(knitr))
+suppressMessages(library(pander))
+suppressMessages(library(car))
+suppressMessages(library(ez))
+suppressMessages(library(sjPlot))
+suppressMessages(library(lsr))
+```
+
+\newpage
+# Implicit Encoding
+```{r}
+#IE SPEEDED NAMING 1
+# set working directory
+wd <- "/Volumes/j.nicosiaSD 1/Cog Psych Lab/HSFollowUp/data1/IEspeedednaming1/"
+setwd("~/")
+setwd("/Volumes/j.nicosiaSD 1/Cog Psych Lab/HSFollowUp/data1/IEspeedednaming1/")
+
+# read in all data files
+N <- paste(wd, list.files(wd), sep = "")
+
+# make data frame
+data <- data.frame()
+
+# select columns of data
+for (i in 1:length(N)){
+  file <- N[i]
+  data_in <- read.csv(file, header = TRUE, stringsAsFactors = FALSE)
+  data_in <- data_in[,c("Subject", "enterResponse.RESP", "nameItem", "freq", "studied", "Target.RT")]
+  data <- rbind(data, data_in)
+}
+
+#first trim (take out any raw rts less than 200ms)
+data$rt.trim <- with(data, ifelse(Target.RT >= 200, Target.RT, NA))
+data$rt.trim <- with(data, ifelse(Target.RT <= 2500, Target.RT, NA))
+
+#denote that this is data1 
+data$data_set <- "data1"
+
+#IE SPEEDED NAMING 2
+# set working directory
+wd <- "/Volumes/j.nicosiaSD 1/Cog Psych Lab/HSFollowUp/data1/IEspeedednaming2/"
+setwd("~/")
+setwd("/Volumes/j.nicosiaSD 1/Cog Psych Lab/HSFollowUp/data1/IEspeedednaming2/")
+
+# read in all data files
+N <- paste(wd, list.files(wd), sep = "")
+
+# make data frame
+data2 <- data.frame()
+
+# select columns of data
+for (i in 1:length(N)){
+  file <- N[i]
+  data_in <- read.csv(file, header = TRUE, stringsAsFactors = FALSE)
+  data_in <- data_in[,c("Subject", "enterResponse.RESP", "nameItem", "freq", "judgment", "studied", "Target.RT", "recog.ACC", "recog.RT", "recog.RESP")]
+  data2 <- rbind(data2, data_in)
+}
+
+#first trim (take out any raw rts less than 200ms)
+data2$rt.trim <- with(data2, ifelse(Target.RT >= 200, Target.RT, NA))
+data2$rt.trim <- with(data2, ifelse(Target.RT <= 2500, Target.RT, NA))
+
+data2$recog.rt.trim <- with(data2, ifelse(recog.RT >= 200, recog.RT, NA))
+data2$recog.rt.trim <- with(data2, ifelse(recog.RT <= 2500, recog.RT, NA))
+
+#denote that this is data2 
+data2$data_set <- "data2"
+
+# ACCURACY CODING
+# speeded naming 1
+data <- mutate(data, enterResponse.RESP = as.character(enterResponse.RESP))
+data <- mutate(data, enterResponse.RESP = sapply(strsplit(data$enterResponse.RESP, split='{', fixed =TRUE), function(x) (x[1])))
+data$enterResponse.RESP <- as.character(data$enterResponse.RESP)
+data$enterResponse.RESP <- sapply(data$enterResponse.RESP, toupper)
+data$enterResponse.RESP <- gsub("[ ]", "", data$enterResponse.RESP)
+data$nameItem <- gsub("[ ]", "", data$nameItem)
+data$accuracy <- with(data, ifelse(nameItem == enterResponse.RESP, 1, 0))
+
+#remove the 2 from the string and check if accurate
+data <- mutate(data, enterResponse.RESP = sapply(strsplit(data$enterResponse.RESP, split='2', fixed =TRUE), function(x) (x[1])))
+data$enterResponse.RESP <- as.character(data$enterResponse.RESP)
+data$enterResponse.RESP <- sapply(data$enterResponse.RESP, toupper)
+data$enterResponse.RESP <- gsub("[ ]", "", data$enterResponse.RESP)
+data$nameItem <- gsub("[ ]", "", data$nameItem)
+data$accuracy <- with(data, ifelse(nameItem == enterResponse.RESP, 1, 0))
+
+#check
+data.check <- subset(data, accuracy == "0")
+
+#speeded naming 2
+data2 <- mutate(data2, enterResponse.RESP = as.character(enterResponse.RESP))
+data2 <- mutate(data2, enterResponse.RESP = sapply(strsplit(data2$enterResponse.RESP, split='{', fixed =TRUE), function(x) (x[1])))
+data2$enterResponse.RESP <- as.character(data2$enterResponse.RESP)
+data2$enterResponse.RESP <- sapply(data2$enterResponse.RESP, toupper)
+data2$enterResponse.RESP <- gsub("[ ]", "", data2$enterResponse.RESP)
+data2$nameItem <- gsub("[ ]", "", data2$nameItem)
+data2$accuracy <- with(data2, ifelse(nameItem == enterResponse.RESP, 1, 0))
+
+#remove the 2 from the string and check if accurate
+data2 <- mutate(data2, enterResponse.RESP = sapply(strsplit(data2$enterResponse.RESP, split='2', fixed =TRUE), function(x) (x[1])))
+data2$enterResponse.RESP <- as.character(data2$enterResponse.RESP)
+data2$enterResponse.RESP <- sapply(data2$enterResponse.RESP, toupper)
+data2$enterResponse.RESP <- gsub("[ ]", "", data2$enterResponse.RESP)
+data2$nameItem <- gsub("[ ]", "", data2$nameItem)
+data2$accuracy <- with(data2, ifelse(nameItem == enterResponse.RESP, 1, 0))
+
+#check
+data.check <- subset(data2, accuracy == "0")
+
+#rename 0s and 1s in freq and studied columns
+data$freq <- with(data, ifelse(freq == "0", "LF", "HF"))
+data2$freq <- with(data2, ifelse(freq == "0", "LF", "HF"))
+
+data$studied <- with(data, ifelse(studied == "0", "notstudied", "studied"))
+data2$studied <- with(data2, ifelse(studied == "0", "notstudied", "studied"))
+data2 <- subset(data2, Subject != "NA")
+
+#double check inaccurate responses to confirm spelling and delay
+data.check <- subset(data, accuracy == 0)
+
+data.combined <- full_join(data, data2)
+
+#subset, z-score by subject, and rbind
+N = nrow(data.combined)
+ SubjSplit = split(data.combined, data.combined$Subject) 
+ zdata.combined <- matrix(NA, nrow = N, ncol = 4)
+ 
+for(i in seq(along = SubjSplit)) {
+  
+  id = names(SubjSplit)[i];
+  
+  #created dataset for each subject
+  SubjZdata.combined = data.combined[data.combined$Subject == id,]
+    meanRT = mean(SubjZdata.combined$rt.trim, na.rm = TRUE)
+    meanRecogRT = mean(SubjZdata.combined$recog.rt.trim, na.rm = TRUE)
+    sdRT = sd(SubjZdata.combined$rt.trim, na.rm = TRUE)
+    sdRecogRT = sd(SubjZdata.combined$recog.rt.trim, na.rm = TRUE)
+    zdata.combined = SubjZdata.combined[, c("Subject", "enterResponse.RESP", "nameItem", "freq", "judgment", "studied", "Target.RT", "recog.ACC", "recog.RT", "rt.trim", "recog.rt.trim", "data_set", "accuracy", "recog.RESP")]
+    zdata.combined$zrt = ((SubjZdata.combined$rt.trim) - meanRT)/sdRT
+    zdata.combined$recog.zrt = ((SubjZdata.combined$recog.rt.trim) - meanRecogRT)/sdRecogRT
+     
+    if (i == 1)
+      result = zdata.combined
+    else
+      result = rbind(result, zdata.combined)
+  }
+  
+  data.combined <- result
+  data.combined <- as.data.frame(data.combined)
+#end loop
+
+#second trim of z-scored RTs (any z-scored rt than -3sd and anything greather than 3sd)
+data.combined$zRT <- with(data.combined, ifelse(zrt <= -3 | zrt >= 3, NA, zrt))
+data.combined$zRT.r <- with(data.combined, ifelse(recog.zrt <= -3 | zrt >= 3, NA, recog.zrt))
+
+#need to also take out response times that are less than -3 sds and greater than 3 sds
+data.combined$rt.trim2 <- with(data.combined, ifelse(zrt <= -3 | zrt >= 3, NA, rt.trim))
+data.combined$rt.trim2.r <- with(data.combined, ifelse(recog.zrt <= -3 | zrt >= 3, NA, recog.rt.trim))
+
+#age variable
+data.combined$age <- with(data.combined, ifelse(Subject <= 400, "YA", "OA"))
+
+# split data1 and data2 apart again
+data <- subset(data.combined, data_set == "data1")
+data2 <- subset(data.combined, data_set == "data2")
+```
+
+## Z-Scored Response Times
+### Speeded Naming
+```{r}
+#strings with a 2 in them
+#get rid of that rt
+library(stringr)
+data$rt.trim <- with(data, ifelse(str_detect(enterResponse.RESP, "2"), NA, data$rt.trim))
+data2$rt.trim <- with(data2, ifelse(str_detect(enterResponse.RESP, "2"), NA, data2$rt.trim))
+
+#remove the 2 from the string and check if accurate
+data <- mutate(data, enterResponse.RESP = sapply(strsplit(data$enterResponse.RESP, split='2', fixed =TRUE), function(x) (x[1])))
+data$enterResponse.RESP <- as.character(data$enterResponse.RESP)
+data$enterResponse.RESP <- sapply(data$enterResponse.RESP, toupper)
+data$enterResponse.RESP <- gsub("[ ]", "", data$enterResponse.RESP)
+data$nameItem <- gsub("[ ]", "", data$nameItem)
+data$accuracy <- with(data, ifelse(nameItem == enterResponse.RESP, 1, 0))
+
+#check
+data.check <- subset(data, accuracy == "0")
+
+data2 <- mutate(data2, enterResponse.RESP = sapply(strsplit(data2$enterResponse.RESP, split='2', fixed =TRUE), function(x) (x[1])))
+data2$enterResponse.RESP <- as.character(data2$enterResponse.RESP)
+data2$enterResponse.RESP <- sapply(data2$enterResponse.RESP, toupper)
+data2$enterResponse.RESP <- gsub("[ ]", "", data2$enterResponse.RESP)
+data2$nameItem <- gsub("[ ]", "", data2$nameItem)
+data2$accuracy <- with(data2, ifelse(nameItem == enterResponse.RESP, 1, 0))
+
+#check
+data.check <- subset(data2, accuracy == "0")
+
+data <- subset(data, accuracy == 1)
+data2 <- subset(data2, accuracy == 1)
+
+data$study_freq <- with(data, ifelse(studied == "studied" & freq == "HF", "studied_hf",
+                                     ifelse(studied == "studied" & freq == "LF", "studied_lf",
+                                            ifelse(studied == "notstudied" & freq == "HF", "notstudied_hf",
+                                                   ifelse(studied == "notstudied" & freq == "LF", "notstudied_lf", NA)))))
+
+data$recog <- "w/o recog"
+
+data2$study_freq <- with(data2, ifelse(studied == "studied" & freq == "HF", "studied_hf",
+                                     ifelse(studied == "studied" & freq == "LF", "studied_lf",
+                                            ifelse(studied == "notstudied" & freq == "HF", "notstudied_hf",
+                                                   ifelse(studied == "notstudied" & freq == "LF", "notstudied_lf", NA)))))
+
+data2$recog <- "w recog"
+
+data$age <- with(data, ifelse(Subject <= 400, "YA", "OA"))
+data2$age <- with(data2, ifelse(Subject <= 400, "YA", "OA"))
+
+IERT1 <- data %>%
+  group_by(Subject) %>%
+  summarize(
+    studied_hf = mean(zRT[which(study_freq == "studied_hf")], na.rm = TRUE),
+    studied_lf = mean(zRT[which(study_freq == "studied_lf")], na.rm = TRUE),
+    notstudied_hf = mean(zRT[which(study_freq == "notstudied_hf")], na.rm = TRUE),
+    notstudied_lf = mean(zRT[which(study_freq == "notstudied_lf")], na.rm = TRUE),
+    recog = "Block 1")
+  
+#data to long format and gather by condition
+combined1 <- gather(IERT1, type, RT, studied_hf:notstudied_lf)
+
+#add in separate freq and study columns
+combined1$freq <- with(combined1, ifelse(type == "studied_hf", "HF",
+                                    ifelse(type == "studied_lf", "LF",
+                                           ifelse(type == "notstudied_hf", "HF",
+                                                  ifelse(type == "notstudied_lf", "LF", NA)))))
+
+combined1$studied <- with(combined1, ifelse(type == "studied_hf", "studied",
+                                            ifelse(type == "studied_lf", "studied",
+                                                   ifelse(type == "notstudied_hf", "notstudied",
+                                                          ifelse(type == "notstudied_lf", "notstudied", NA)))))
+
+IERT2 <- data2 %>%
+  group_by(Subject) %>%
+  summarize(
+    studied_hf = mean(zRT[which(study_freq == "studied_hf")], na.rm = TRUE),
+    studied_lf = mean(zRT[which(study_freq == "studied_lf")], na.rm = TRUE),
+    notstudied_hf = mean(zRT[which(study_freq == "notstudied_hf")], na.rm = TRUE),
+    notstudied_lf = mean(zRT[which(study_freq == "notstudied_lf")], na.rm = TRUE),
+    recog = "Block 2")
+
+#data to long format and gather by condition
+combined2 <- gather(IERT2, type, RT, studied_hf:notstudied_lf) 
+
+#add in separate freq and study columns
+combined2$freq <- with(combined2, ifelse(type == "studied_hf", "HF",
+                                    ifelse(type == "studied_lf", "LF",
+                                           ifelse(type == "notstudied_hf", "HF",
+                                                  ifelse(type == "notstudied_lf", "LF", NA)))))
+
+combined2$studied <- with(combined2, ifelse(type == "studied_hf", "studied",
+                                            ifelse(type == "studied_lf", "studied",
+                                                   ifelse(type == "notstudied_hf", "notstudied",
+                                                          ifelse(type == "notstudied_lf", "notstudied", NA)))))
+
+combined <- full_join(combined1, combined2)
+combined$age <- with(combined, ifelse(Subject <= 400, "YA", "OA"))
+combined_og <- combined
+
+write.csv(combined, "/Volumes/j.nicosiaSD 1/Cog Psych Lab/ImplicitEncoding/IE1zRTs.csv", row.names = T)
+```
+
+#### Study X Frequency
+```{r}
+#studied and freq
+#means
+combined.means <- summarySE(data = combined,
+                        measurevar = "RT",
+                        groupvars = c("recog", "type", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(combined.means, digits = 2, caption = "Speeded Naming Mean zRTs")
+
+#plot
+ggplot(combined.means, aes(x = type,
+                           y = RT,
+                           fill = factor(recog))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "white")) +
+  labs(y = "Z-Scored RT", 
+       title = "Speeded Naming w/ and w/o Recog zRTs", 
+       fill = "Block") +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4) + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+#other means
+combined.2 <- subset(combined, type %in% c("no_recog", "w_recog", "no_recog2"))
+combined.means1 <- summarySE(data = combined,
+                        measurevar = "RT",
+                        groupvars = c("recog", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+
+combined.means1$age <- factor(combined.means1$age, levels = c("YA", "OA"))
+combined.means1$recog <- factor(combined.means1$recog, levels = c("Block 1", "Block 2"))
+
+#plot 2
+ggplot(combined.means1, aes(x = recog,
+                            y = RT,
+                            fill = factor(recog))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("dodgerblue4", "dodgerblue3")) +
+  labs(x = "Block Type",
+       y = "Z-Scored RT", 
+       title = "Speeded Naming zRTs by Block Type", 
+       fill = "Block Type") +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4) +
+  theme(axis.text = element_text(size = rel(0.5)))  +
+  theme(title = element_text(face = "bold", size = rel(1.75)),
+        axis.text = element_text(face = "bold", size = rel(1.75)),
+        axis.title = element_text(face = "bold", size = rel(1.75)),
+        legend.text = element_text(face = "bold", size = rel(1.75)),
+        strip.text = element_text(face = "bold", size = rel(1.75)),
+        legend.position = "right") + 
+          coord_cartesian(ylim = c(-.5, .75))
+
+
+ggsave("~/Desktop/IE1.pdf", width = 13, height = 7, units = "in", dpi = 150)
+
+#anova
+ezanova <- ezANOVA(data = combined, 
+                   dv = RT,
+                   wid = Subject,
+                   within = c("studied", "freq", "recog"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Implict Encoding zRTs")
+
+# write combined to csv for jasp
+write.csv(combined, file = "IE1_blockXage.csv")
+```
+
+##### Block 1
+```{r}
+combined.bl1 <- subset(combined, combined$recog != "Block 2")
+
+#means
+combined.means <- summarySE(data = combined.bl1,
+                        measurevar = "RT",
+                        groupvars = c("type", "studied", "freq", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(combined.means, digits = 2, caption = "Speeded Naming Mean zRTs - Block 1 Only")
+
+combined.means$age <- factor(combined.means$age, levels = c("YA", "OA"))
+combined.means$freq <- factor(combined.means$freq, levels = c("LF", "HF"))
+combined.means$studied <- factor(combined.means$studied, levels = c("notstudied", "studied"))
+
+#plot
+ggplot(combined.means, aes(x = freq,
+                           y = RT,
+                           fill = freq)) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "grey50")) +
+  labs(x = "Word Frequency",
+       y = "Z-Scored RT") +
+  guides(fill = guide_legend(title = "Word Frequency")) +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age*studied, scales = "free_x", nrow = 1, ncol = 4) +
+  theme(axis.text = element_text(size = rel(0.5)))  +
+  theme(title = element_text(face = "bold", size = rel(1.75)),
+        axis.text = element_text(face = "bold", size = rel(1.75)),
+        axis.title = element_text(face = "bold", size = rel(1.75)),
+        legend.text = element_text(face = "bold", size = rel(1.75)),
+        strip.text = element_text(face = "bold", size = rel(1.75)),
+        legend.position = "right") + 
+          coord_cartesian(ylim = c(-.6, .5))
+
+
+ggsave("~/Desktop/IE1_WFE_Block1.pdf", width = 13, height = 7, units = "in", dpi = 150)
+```
+
+##### Block 2
+```{r}
+combined.bl2 <- subset(combined, combined$recog != "Block 1")
+
+#means
+combined.means <- summarySE(data = combined.bl2,
+                        measurevar = "RT",
+                        groupvars = c("type", "studied", "freq", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(combined.means, digits = 2, caption = "Speeded Naming Mean zRTs - Block 2 Only")
+
+combined.means$age <- factor(combined.means$age, levels = c("YA", "OA"))
+combined.means$freq <- factor(combined.means$freq, levels = c("LF", "HF"))
+combined.means$studied <- factor(combined.means$studied, levels = c("notstudied", "studied"))
+
+#plot
+ggplot(combined.means, aes(x = freq,
+                           y = RT,
+                           fill = freq)) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "grey50")) +
+  labs(x = "Word Frequency",
+       y = "Z-Scored RT") +
+  guides(fill = guide_legend(title = "Word Frequency")) +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age*studied, scales = "free_x", nrow = 1, ncol = 4) +
+  theme(axis.text = element_text(size = rel(0.5)))  +
+  theme(title = element_text(face = "bold", size = rel(1.75)),
+        axis.text = element_text(face = "bold", size = rel(1.75)),
+        axis.title = element_text(face = "bold", size = rel(1.75)),
+        legend.text = element_text(face = "bold", size = rel(1.75)),
+        strip.text = element_text(face = "bold", size = rel(1.75)),
+        legend.position = "right") + 
+          coord_cartesian(ylim = c(-.6, .5))
+
+
+ggsave("~/Desktop/IE1_WFE_Block2.pdf", width = 13, height = 7, units = "in", dpi = 150)
+```
+
+#### Recog Cost and Recog Acc
+```{r}
+# calc diff between no recog and recog RTs
+# does recog acc predict this?
+cov <- combined %>%
+  group_by(Subject) %>%
+  summarize(
+    no_recog = mean(RT[which(recog == "Block 1")], na.rm = TRUE),
+    w_recog = mean(RT[which(recog == "Block 2")], na.rm = TRUE),
+    age = unique(age))
+
+recognitionAcc <- data2 %>%
+  group_by(Subject) %>%
+  summarize(
+    recogAcc = sum(recog.ACC/40, na.rm = TRUE),
+    age = unique(age))
+
+switchCostwRecogAcc <- full_join(cov, recognitionAcc)
+switchCostwRecogAcc$recogCost <- switchCostwRecogAcc$w_recog - switchCostwRecogAcc$no_recog
+
+pander(summary(aov(recogCost ~ age*recogAcc, data = switchCostwRecogAcc)))
+
+pander(cor.test(switchCostwRecogAcc$recogCost, switchCostwRecogAcc$recogAcc))
+
+ggplot(switchCostwRecogAcc, aes(x = recogAcc, y = recogCost)) +
+  geom_point(aes(shape = age, color = age), size = 7) + 
+  scale_color_manual(values = c("black", "gray50")) +
+  geom_smooth(method = lm,   # Add linear regression line
+                se = TRUE) +
+  labs(x = "Proportion of Correctly Recognized Words",
+       y = "Block 2 zRT - Block 1 zRT",
+       title = "Recognition Accuracy by Block Cost") +
+  annotate(x = .65, y = -.25, 
+         label = paste("R = -0.39, p < 0.001"), 
+         geom = "text", size = 7) +
+  theme_bw() +
+  theme(title = element_text(face = "bold", size = rel(1.75)),
+        axis.text = element_text(face = "bold", size = rel(1.75)),
+        axis.title = element_text(face = "bold", size = rel(1.75)),
+        legend.text = element_text(face = "bold", size = rel(1.75)),
+        legend.position = "right") 
+
+ggsave("~/Desktop/RecogAccXRecogCost_E1.pdf", width = 13, height = 7, units = "in", dpi = 150)
+```
+
+
+##### Word Frequency Effect
+```{r}
+combined <- combined %>%
+  unite(WFEtype, recog, type)
+
+combined$WFEtype <- gsub(" ", "", combined$WFEtype) 
+
+combined.wide <- subset(combined, select = c("Subject", "age", "WFEtype", "RT"))
+combined.wide <- spread(combined.wide, key = WFEtype, value = RT)
+
+WFE <- combined.wide %>%
+  group_by(Subject) %>%
+  summarize(
+    Block1_studied_WFE = Block1_studied_lf - Block1_studied_hf,
+    Block2_studied_WFE = Block2_studied_lf - Block2_studied_hf,
+    Block1_notstudied_WFE = Block1_notstudied_lf - Block1_notstudied_hf,
+    Block2_notstudied_WFE = Block2_notstudied_lf - Block2_notstudied_hf,
+    age = unique(age))
+
+WFE.long <- gather(WFE, WFEtype, WFeffect, Block1_studied_WFE:Block2_notstudied_WFE)
+WFE.long$block <- with(WFE.long, ifelse(WFEtype %in% c("Block1_studied_WFE", "Block1_notstudied_WFE"), "Block1", "Block2"))
+WFE.long$studied <- with(WFE.long, ifelse(WFEtype %in% c("Block1_studied_WFE", "Block2_studied_WFE"), "studied", "notstudied"))
+
+#means
+WFE.means <- summarySE(data = WFE.long,
+                        measurevar = "WFeffect",
+                        groupvars = c("age", "block", "studied"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(WFE.means, digits = 2, caption = "Word Frequency Effect (using zRTs")
+
+WFE.means$age <- factor(WFE.means$age, levels = c("YA", "OA"))
+WFE.means$block <- factor(WFE.means$block, levels = c("Block1", "Block2"))
+WFE.means$studied <- factor(WFE.means$studied, levels = c("notstudied", "studied"))
+
+#plot
+ggplot(WFE.means, aes(x = studied,
+                      y = WFeffect,
+                      fill = factor(block))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("dodgerblue4", "dodgerblue3")) +
+  labs(x = "Studied",
+       y = "Word Frequency Effect from zRTs", 
+       title = "zRT Word Frequency Effect by Age", 
+       fill = "Block Type") +
+  geom_errorbar(aes (ymin = WFeffect - se, ymax = WFeffect + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4) +
+  theme(title = element_text(face = "bold", size = rel(1.75)),
+        axis.text = element_text(face = "bold", size = rel(1.75)),
+        axis.title = element_text(face = "bold", size = rel(1.75)),
+        legend.text = element_text(face = "bold", size = rel(1.75)),
+        strip.text = element_text(face = "bold", size = rel(1.75)),
+        legend.position = "right") 
+
+ggsave("~/Desktop/E1_WFE_study.pdf", width = 13, height = 10, units = "in", dpi = 150)
+
+#anova
+ezanova <- ezANOVA(data = WFE.long, 
+                   dv = WFeffect,
+                   wid = Subject,
+                   within = c("studied", "block"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Word Frequency Effect (with zRTs)")
+```
+
+###### Collapsed Across Study
+```{r}
+combined$block <- with(combined, ifelse(WFEtype %in% c("Block1_studied_hf", "Block1_studied_lf", "Block1_notstudied_hf", "Block1_notstudied_lf"), "Block1", "Block2"))
+
+combined.wide <- subset(combined, select = c("Subject", "age", "block", "freq", "RT"))
+combined.wide$WFEtype <- paste(combined.wide$block, combined.wide$freq, sep = "")
+
+combined.wide <- combined.wide %>%
+  group_by(Subject, WFEtype) %>%
+  summarize(
+    RT = mean(RT, na.rm = T),
+    age = unique(age))
+
+combined.wide <- spread(combined.wide, key = WFEtype, value = RT)
+
+WFE <- combined.wide %>%
+  group_by(Subject) %>%
+  summarize(
+    Block1 = Block1LF - Block1HF,
+    Block2 = Block2LF - Block2HF,
+    age = unique(age))
+
+WFE.long <- gather(WFE, block, WFeffect, Block1:Block2)
+
+#means
+WFE.means <- summarySE(data = WFE.long,
+                        measurevar = "WFeffect",
+                        groupvars = c("age", "block"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(WFE.means, digits = 2, caption = "Word Frequency Effect (using zRTs")
+
+WFE.means$age <- factor(WFE.means$age, levels = c("YA", "OA"))
+WFE.means$block <- factor(WFE.means$block, levels = c("Block1", "Block2"))
+
+#plot
+ggplot(WFE.means, aes(x = block,
+                      y = WFeffect,
+                      fill = factor(block))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("dodgerblue4", "dodgerblue3")) +
+  labs(x = "Block Type",
+       y = "Word Frequency Effect from zRTs", 
+       title = "Word Frequency Effect from zRTs by Age", 
+       fill = "Block Type") +
+  geom_errorbar(aes (ymin = WFeffect - se, ymax = WFeffect + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4)  +
+  theme(title = element_text(face = "bold", size = rel(1.75)),
+        axis.text = element_text(face = "bold", size = rel(1.75)),
+        axis.title = element_text(face = "bold", size = rel(1.75)),
+        legend.text = element_text(face = "bold", size = rel(1.75)),
+        strip.text = element_text(face = "bold", size = rel(1.75)),
+        legend.position = "right") 
+
+ggsave("~/Desktop/E1_WFE.pdf", width = 13, height = 10, units = "in", dpi = 150)
+
+#anova
+ezanova <- ezANOVA(data = WFE.long, 
+                   dv = WFeffect,
+                   wid = Subject,
+                   within = c("block"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Word Frequency Effect (with zRTs)")
+```
+
+##### ANCOVA
+```{r}
+data.recog <- subset(data.combined, data_set == "data2")
+data.recog$age <- as.factor(data.recog$age)
+data.recog$recog.ACC <- as.factor(data.recog$recog.ACC)
+data.recog$freq <- as.factor(data.recog$freq)
+data.recog$studied <- as.factor(data.recog$studied)
+
+model1 <- aov(zRT.r ~ age*studied + Error(Subject), data = data.recog)
+summary(model1)
+
+model2 <- aov(zRT.r ~ age*studied + recog.ACC, data = data.recog)
+pander(summary(model2))
+```
+
+##### Priming Scores
+```{r}
+#studied vs not studied
+#1
+study1 <- data %>%
+  group_by(Subject) %>%
+  summarize(
+    notstudied_norecog = mean(zRT[which(studied == "notstudied")], na.rm = TRUE),
+    studied_norecog = mean(zRT[which(studied == "studied")], na.rm = TRUE),
+    age = unique(age))
+
+#2
+study2 <- data2 %>%
+  group_by(Subject) %>%
+  summarize(
+    notstudied_recog = mean(zRT[which(studied == "notstudied")], na.rm = TRUE),
+    studied_recog = mean(zRT[which(studied == "studied")], na.rm = TRUE),
+    age = unique(age))
+
+#combine
+study <- full_join(study1, study2)
+
+#create priming scores
+study$priming_norecog <- study$notstudied_norecog - study$studied_norecog
+study$priming_recog <- study$notstudied_recog - study$studied_recog
+
+drops <- c("notstudied_norecog", "studied_norecog", "notstudied_recog", "studied_recog")
+study <- study[ , !(names(study) %in% drops)]
+
+study.long <- gather(study, recog, primingScore, priming_norecog:priming_recog)
+
+study.long$recog <- as.factor(study.long$recog)
+study.long$age <- as.factor(study.long$age)
+
+#means
+priming.means <- summarySE(data = study.long,
+                           measurevar = "primingScore",
+                           groupvars = c("age", "recog"),
+                           na.rm = FALSE,
+                           conf.interval = 0.95,
+                           .drop = TRUE)
+
+kable(priming.means, digits = 2, caption = "Speeded Naming Mean Priming zRTs")
+
+#plot
+ggplot(priming.means, aes(x = recog,
+                          y = primingScore,
+                          fill = factor(recog))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "white")) +
+  labs(y = "Z-Scored Priming RT", 
+       title = "Speeded Naming Priming Score (based on zRTs)", 
+       fill = "W or W/o Recog") +
+  geom_errorbar(aes (ymin = primingScore - se, ymax = primingScore + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4)
+
+#anova
+ezanova <- ezANOVA(data = study.long, 
+                   dv = primingScore,
+                   wid = Subject,
+                   within = c("recog"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Priming Scores (using zRTs)")
+```
+
+### Recognition
+#### Study X Frequency
+```{r}
+recog.rt <- subset(data2, recog.ACC == "1")
+recog.rt <- subset(recog.rt, Subject != "317")
+
+recog <- recog.rt %>%
+  group_by(Subject) %>%
+  summarize(
+    studied_hf = mean(zRT.r[which(study_freq == "studied_hf")], na.rm = TRUE),
+    studied_lf = mean(zRT.r[which(study_freq == "studied_lf")], na.rm = TRUE),
+    notstudied_hf = mean(zRT.r[which(study_freq == "notstudied_hf")], na.rm = TRUE),
+    notstudied_lf = mean(zRT.r[which(study_freq == "notstudied_lf")], na.rm = TRUE),
+    age = unique(age))
+  
+#data to long format and gather by condition
+recog.long <- gather(recog, type, RT, studied_hf:notstudied_lf) 
+
+recog.means <- summarySE(data = recog.long, 
+                            measurevar = "RT",
+                            groupvars = c("type", "age"))
+
+kable(recog.means, digits = 2, caption = "Recognition Mean zRTs")
+
+recog.long$study <- with(recog.long, ifelse(type %in% c("notstudied_hf", "notstudied_lf"), "notstudied", "studied"))
+recog.long$freq <- with(recog.long, ifelse(type %in% c("notstudied_hf", "studied_hf"), "HF", "LF"))
+
+recog.means <- summarySE(data = recog.long, 
+                            measurevar = "RT",
+                            groupvars = c("study", "freq", "type", "age"))
+
+##delete this stuff 
+recog.means$type <- factor(recog.means$type, levels=c("notstudied_hf", "notstudied_lf", "studied_hf", "studied_lf"))
+
+ggplot(recog.means, aes(x = type,
+                        y = RT, 
+                        fill = factor(freq))) + 
+  geom_bar(position = "dodge",
+           stat = "identity",
+           color = "black") +
+  labs(y = "Z-Scored RT", 
+       title = "Recognition RT") +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  scale_fill_manual(values = c("black", "white")) +
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14, face = "bold")) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_wrap( ~study*age, scales = "free_x", nrow = 1, ncol = 4)
+
+recog.means <- summarySE(data = recog.long, 
+                            measurevar = "RT",
+                            groupvars = c("study", "age"))
+
+ggplot(recog.means, aes(x = study,
+                        y = RT)) + 
+  geom_bar(position = "dodge",
+           stat = "identity",
+           color = "black") +
+  labs(y = "Z-Scored RT", 
+       title = "Recognition RT") +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  scale_fill_manual(values = c("black", "white")) +
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14, face = "bold")) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4)
+
+#anova
+ezanova <- ezANOVA(data = recog.long, 
+                   dv = RT,
+                   wid = Subject,
+                   within = c("study", "freq"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Implict Encoding zRTs")
+```
+
+#### Study
+```{r}
+#studied vs not studied
+study <- recog.rt %>%
+  group_by(Subject) %>%
+  summarize(
+    notstudied = mean(zRT.r[which(studied == "notstudied")], na.rm = TRUE),
+    studied = mean(zRT.r[which(studied == "studied")], na.rm = TRUE),
+    recog = "no recog", 
+    age = unique(age))
+  
+#data to long format and gather by condition
+study <- gather(study, studied, RT, studied:notstudied)
+
+#means
+study.means <- summarySE(data = study,
+                        measurevar = "RT",
+                        groupvars = c("studied", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(study.means, digits = 2, caption = "Recognition Mean zRTs")
+
+#plot
+ggplot(study.means, aes(x = studied,
+                       y = RT)) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "white")) +
+  labs(y = "Z-Scored RT", 
+       title = "Recognition zRTs") +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4)
+
+#anova
+ezanova <- ezANOVA(data = study, 
+                   dv = RT,
+                   wid = Subject,
+                   within = c("studied"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Implict Encoding zRTs")
+```
+
+## Raw, Trimmed Response Times
+### Speeded Naming
+```{r}
+#strings with a 2 in them
+#get rid of that rt
+library(stringr)
+data$rt.trim <- with(data, ifelse(str_detect(enterResponse.RESP, "2"), NA, data$rt.trim))
+data2$rt.trim <- with(data2, ifelse(str_detect(enterResponse.RESP, "2"), NA, data2$rt.trim))
+
+#remove the 2 from the string and check if accurate
+data <- mutate(data, enterResponse.RESP = sapply(strsplit(data$enterResponse.RESP, split='2', fixed =TRUE), function(x) (x[1])))
+data$enterResponse.RESP <- as.character(data$enterResponse.RESP)
+data$enterResponse.RESP <- sapply(data$enterResponse.RESP, toupper)
+data$enterResponse.RESP <- gsub("[ ]", "", data$enterResponse.RESP)
+data$nameItem <- gsub("[ ]", "", data$nameItem)
+data$accuracy <- with(data, ifelse(nameItem == enterResponse.RESP, 1, 0))
+
+#check
+data.check <- subset(data, accuracy == "0")
+
+data2 <- mutate(data2, enterResponse.RESP = sapply(strsplit(data2$enterResponse.RESP, split='2', fixed =TRUE), function(x) (x[1])))
+data2$enterResponse.RESP <- as.character(data2$enterResponse.RESP)
+data2$enterResponse.RESP <- sapply(data2$enterResponse.RESP, toupper)
+data2$enterResponse.RESP <- gsub("[ ]", "", data2$enterResponse.RESP)
+data2$nameItem <- gsub("[ ]", "", data2$nameItem)
+data2$accuracy <- with(data2, ifelse(nameItem == enterResponse.RESP, 1, 0))
+
+#check
+data.check <- subset(data2, accuracy == "0")
+
+data <- subset(data, accuracy == 1)
+data2 <- subset(data2, accuracy == 1)
+
+data$study_freq <- with(data, ifelse(studied == "studied" & freq == "HF", "studied_hf",
+                                     ifelse(studied == "studied" & freq == "LF", "studied_lf",
+                                            ifelse(studied == "notstudied" & freq == "HF", "notstudied_hf",
+                                                   ifelse(studied == "notstudied" & freq == "LF", "notstudied_lf", NA)))))
+
+data$block <- "Block1"
+
+data2$study_freq <- with(data2, ifelse(studied == "studied" & freq == "HF", "studied_hf",
+                                     ifelse(studied == "studied" & freq == "LF", "studied_lf",
+                                            ifelse(studied == "notstudied" & freq == "HF", "notstudied_hf",
+                                                   ifelse(studied == "notstudied" & freq == "LF", "notstudied_lf", NA)))))
+
+data$block <- "Block2"
+
+data$age <- with(data, ifelse(Subject <= 400, "YA", "OA"))
+data2$age <- with(data2, ifelse(Subject <= 400, "YA", "OA"))
+
+IERT1 <- data %>%
+  group_by(Subject) %>%
+  summarize(
+    studied_hf = mean(rt.trim2[which(study_freq == "studied_hf")], na.rm = TRUE),
+    studied_lf = mean(rt.trim2[which(study_freq == "studied_lf")], na.rm = TRUE),
+    notstudied_hf = mean(rt.trim2[which(study_freq == "notstudied_hf")], na.rm = TRUE),
+    notstudied_lf = mean(rt.trim2[which(study_freq == "notstudied_lf")], na.rm = TRUE),
+    no_recog = mean(rt.trim2, na.rm = TRUE),
+    block = "Block1")
+  
+#data to long format and gather by condition
+combined1 <- gather(IERT1, type, RT, studied_hf:no_recog)
+
+#add in separate freq and study columns
+combined1$freq <- with(combined1, ifelse(type == "studied_hf", "HF",
+                                    ifelse(type == "studied_lf", "LF",
+                                           ifelse(type == "notstudied_hf", "HF",
+                                                  ifelse(type == "notstudied_lf", "LF", NA)))))
+
+combined1$studied <- with(combined1, ifelse(type == "studied_hf", "studied",
+                                            ifelse(type == "studied_lf", "studied",
+                                                   ifelse(type == "notstudied_hf", "notstudied",
+                                                          ifelse(type == "notstudied_lf", "notstudied", NA)))))
+
+IERT2 <- data2 %>%
+  group_by(Subject) %>%
+  summarize(
+    studied_hf = mean(rt.trim2[which(study_freq == "studied_hf")], na.rm = TRUE),
+    studied_lf = mean(rt.trim2[which(study_freq == "studied_lf")], na.rm = TRUE),
+    notstudied_hf = mean(rt.trim2[which(study_freq == "notstudied_hf")], na.rm = TRUE),
+    notstudied_lf = mean(rt.trim2[which(study_freq == "notstudied_lf")], na.rm = TRUE),
+    w_recog = mean(rt.trim2, na.rm = TRUE),
+    block = "Block2")
+
+#data to long format and gather by condition
+combined2 <- gather(IERT2, type, RT, studied_hf:w_recog) 
+
+#add in separate freq and study columns
+combined2$freq <- with(combined2, ifelse(type == "studied_hf", "HF",
+                                    ifelse(type == "studied_lf", "LF",
+                                           ifelse(type == "notstudied_hf", "HF",
+                                                  ifelse(type == "notstudied_lf", "LF", NA)))))
+
+combined2$studied <- with(combined2, ifelse(type == "studied_hf", "studied",
+                                            ifelse(type == "studied_lf", "studied",
+                                                   ifelse(type == "studied_lf", "notstudied",
+                                                          ifelse(type == "notstudied_lf", "notstudied", NA)))))
+
+combined <- full_join(combined1, combined2)
+combined$age <- with(combined, ifelse(Subject <= 400, "YA", "OA"))
+
+write.csv(combined, "/Volumes/j.nicosiaSD 1/Cog Psych Lab/ImplicitEncoding/IE1RTs.csv", row.names = T)
+```
+
+#### Study X Frequency
+```{r}
+#studied and freq
+#means
+combined.1 <- subset(combined, type %in% c("studied_hf", "studied_lf", "studied_lf", "notstudied_lf"))
+combined.means <- summarySE(data = combined.1,
+                        measurevar = "RT",
+                        groupvars = c("block", "type", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(combined.means, digits = 2, caption = "Speeded Naming Mean Raw, Trimmed RTs")
+
+#plot
+ggplot(combined.means, aes(x = type,
+                           y = RT,
+                           fill = factor(block))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "white")) +
+  labs(y = "Raw, Trimmed RT", 
+       title = "Speeded Naming w/ and w/o Recog  Raw, Trimmed RTs", 
+       fill = "W or W/o Recog") +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4) + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+#anova
+pander(anova(aov(RT ~ age*studied*freq*block, data = combined.1)))
+
+#other means
+combined.2 <- subset(combined, block %in% c("Block1", "Block2"))
+combined.means1 <- summarySE(data = combined.2,
+                        measurevar = "RT",
+                        groupvars = c("block", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+combined.means1$age <- factor(combined.means1$age, levels = c("YA", "OA"))
+combined.means1$block <- factor(combined.means1$block, levels = c("Block1", "Block2"))
+
+#plot 2
+ggplot(combined.means1, aes(x = block,
+                            y = RT,
+                            fill = factor(block))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("dodgerblue4", "dodgerblue3")) +
+  labs(x = "Block Type",
+       y = "Raw RT", 
+       title = "Speeded Naming Raw RTs by Block Type", 
+       fill = "Block Type") +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4) +
+  theme(axis.text = element_text(size = rel(0.5)))  +
+  theme(title = element_text(face = "bold", size = rel(1.75)),
+        axis.text = element_text(face = "bold", size = rel(1.75)),
+        axis.title = element_text(face = "bold", size = rel(1.75)),
+        legend.text = element_text(face = "bold", size = rel(1.75)),
+        strip.text = element_text(face = "bold", size = rel(1.75)),
+        legend.position = "right") + 
+          coord_cartesian(ylim = c(200, 850))
+
+ggsave("~/Desktop/IE1_rawRTs.pdf", width = 13, height = 7, units = "in", dpi = 150)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Implict Encoding Raw, Trimmed RTs")
+```
+
+##### Word Frequency Effect
+```{r}
+combined <- combined %>%
+  unite(WFEtype, block, type)
+
+combined.wide <- subset(combined, select = c("Subject", "age", "WFEtype", "RT"))
+combined.wide <- spread(combined.wide, key = WFEtype, value = RT)
+
+WFE <- combined.wide %>%
+  group_by(Subject) %>%
+  summarize(
+    Block1_studied_WFE = Block1_studied_lf - Block1_studied_hf,
+    Block2_studied_WFE = Block2_studied_lf - Block2_studied_hf,
+    Block1_notstudied_WFE = Block1_notstudied_lf - Block1_notstudied_hf,
+    Block2_notstudied_WFE = Block2_notstudied_lf - Block2_notstudied_hf,
+    age = unique(age))
+
+WFE.long <- gather(WFE, WFEtype, WFeffect, Block1_studied_WFE:Block2_notstudied_WFE)
+WFE.long$block <- with(WFE.long, ifelse(WFEtype %in% c("Block1_notstudied_WFE", "Block2_notstudied_WFE"), "Block2", "Block1"))
+WFE.long$studied <- with(WFE.long, ifelse(WFEtype %in% c("Block1_studied_WFE", "Block2_studied_WFE"), "studied", "notstudied"))
+
+#means
+WFE.means <- summarySE(data = WFE.long,
+                        measurevar = "WFeffect",
+                        groupvars = c("WFEtype", "age", "block"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(WFE.means, digits = 2, caption = "Word Frequency Effect (using raw, trimmed RTs")
+
+#plot
+ggplot(WFE.means, aes(x = WFEtype,
+                      y = WFeffect,
+                      fill = factor(block))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "white")) +
+  labs(y = "Word Frequency Effect from Raw, Trimmed RTs", 
+       title = "Word Frequency Effect from Raw, Trimmed RTs by Age", 
+       fill = "W or W/o Recog") +
+  geom_errorbar(aes (ymin = WFeffect - se, ymax = WFeffect + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4) + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+```
+
+###### Collapsed Across Study
+```{r}
+combined$block <- with(combined, ifelse(WFEtype %in% c("Block1_studied_hf", "Block1_studied_lf", "Block1_notstudied_hf", "Block1_notstudied_lf"), "Block1", "Block2"))
+
+combined.wide <- subset(combined, select = c("Subject", "age", "block", "freq", "RT"))
+combined.wide$WFEtype <- paste(combined.wide$block, combined.wide$freq, sep = "")
+
+combined.wide <- combined.wide %>%
+  group_by(Subject, WFEtype) %>%
+  summarize(
+    RT = mean(RT, na.rm = T),
+    age = unique(age))
+
+combined.wide <- spread(combined.wide, key = WFEtype, value = RT)
+
+WFE <- combined.wide %>%
+  group_by(Subject) %>%
+  summarize(
+    Block1 = Block1LF - Block1HF,
+    Block2 = Block2LF - Block2HF,
+    age = unique(age))
+
+WFE.long <- gather(WFE, block, WFeffect, Block1:Block2)
+
+#means
+WFE.means <- summarySE(data = WFE.long,
+                        measurevar = "WFeffect",
+                        groupvars = c("age", "block"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(WFE.means, digits = 2, caption = "Word Frequency Effect (using zRTs")
+
+WFE.means$age <- factor(WFE.means$age, levels = c("YA", "OA"))
+WFE.means$block <- factor(WFE.means$block, levels = c("Block1", "Block2"))
+
+#plot
+ggplot(WFE.means, aes(x = block,
+                      y = WFeffect,
+                      fill = factor(block))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("dodgerblue4", "dodgerblue3")) +
+  labs(x = "Block Type",
+       y = "Word Frequency Effect from Raw RTs", 
+       title = "Word Frequency Effect from Raw RTs by Age", 
+       fill = "Block Type") +
+  geom_errorbar(aes (ymin = WFeffect - se, ymax = WFeffect + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4)  +
+  theme(title = element_text(face = "bold", size = rel(1.75)),
+        axis.text = element_text(face = "bold", size = rel(1.75)),
+        axis.title = element_text(face = "bold", size = rel(1.75)),
+        legend.text = element_text(face = "bold", size = rel(1.75)),
+        strip.text = element_text(face = "bold", size = rel(1.75)),
+        legend.position = "right") + 
+          coord_cartesian(ylim = c(-20, 80)) 
+
+ggsave("~/Desktop/E1_WFE_raw.pdf", width = 13, height = 10, units = "in", dpi = 150)
+
+#anova
+ezanova <- ezANOVA(data = WFE.long, 
+                   dv = WFeffect,
+                   wid = Subject,
+                   within = c("block"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Word Frequency Effect (with zRTs)")
+
+# shit for g power
+anova <- aov(WFeffect ~ age*block, data = WFE.long)
+pander(anova(anova))
+etaSquared(anova)
+
+WFE.ya <- subset(WFE, age == "YA")
+cor.test(WFE.ya$Block1, WFE.ya$Block2)
+```
+
+#### WFE by Block
+##### Block 1
+```{r}
+combined.bl1 <- subset(combined, combined$block == "Block1")
+
+combined.bl1 <- combined.bl1 %>%
+  group_by(Subject) %>%
+  summarize(
+    HF = mean(RT[which(freq == "HF")], na.rm = TRUE),
+    LF = mean(RT[which(freq == "LF")], na.rm = TRUE),
+    age = unique(age))
+
+combined.bl1 <- gather(combined.bl1, freq, RT, HF:LF)
+
+#means
+combined.means <- summarySE(data = combined.bl1,
+                        measurevar = "RT",
+                        groupvars = c("freq", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(combined.means, digits = 2, caption = "Speeded Naming Mean Raw RTs - Block 1 Only")
+
+combined.means$age <- factor(combined.means$age, levels = c("YA", "OA"))
+combined.means$freq <- factor(combined.means$freq, levels = c("LF", "HF"))
+#combined.means$studied <- factor(combined.means$studied, levels = c("notstudied", "studied"))
+
+#plot
+ggplot(combined.means, aes(x = freq,
+                           y = RT,
+                           fill = freq)) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "grey50")) +
+  labs(x = "Word Frequency",
+       y = "Raw RT",
+       title = "Speeded Naming Raw RTs by Word Frequency - Block 1") +
+  guides(fill = guide_legend(title = "Word Frequency")) +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4) +
+  theme(axis.text = element_text(size = rel(0.5)))  +
+  theme(title = element_text(face = "bold", size = rel(1.75)),
+        axis.text = element_text(face = "bold", size = rel(1.75)),
+        axis.title = element_text(face = "bold", size = rel(1.75)),
+        legend.text = element_text(face = "bold", size = rel(1.75)),
+        strip.text = element_text(face = "bold", size = rel(1.75)),
+        legend.position = "right") +
+  coord_cartesian(ylim = c(250, 800))
+
+ggsave("~/Desktop/IE1_WFE_Block1_rawRTs.pdf", width = 13, height = 7, units = "in", dpi = 150)
+
+#anova
+pander(anova(aov(RT ~ age*freq, data = combined.bl1)))
+```
+
+##### Block 2
+```{r}
+combined.bl2 <- subset(combined, WFEtype %in% c("Block2_studied_hf", "Block2_studied_lf", "Block2_notstudied_hf", "Block2_notstudied_lf"))
+combined.bl2$studied <- with(combined.bl2, ifelse(WFEtype == "Block2_notstudied_hf", "notstudied", combined.bl2$studied))
+combined.bl2 <- subset(combined.bl2, combined.bl2$block == "Block2")
+
+combined.bl2 <- combined.bl2 %>%
+  group_by(Subject) %>%
+  summarize(
+    HF = mean(RT[which(freq == "HF")], na.rm = TRUE),
+    LF = mean(RT[which(freq == "LF")], na.rm = TRUE),
+    age = unique(age))
+
+combined.bl2 <- gather(combined.bl2, freq, RT, HF:LF)
+
+#means
+combined.means <- summarySE(data = combined.bl2,
+                        measurevar = "RT",
+                        groupvars = c("freq", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(combined.means, digits = 2, caption = "Speeded Naming Mean Raw RTs - Block 2 Only")
+
+combined.means$age <- factor(combined.means$age, levels = c("YA", "OA"))
+combined.means$freq <- factor(combined.means$freq, levels = c("LF", "HF"))
+#combined.means$studied <- factor(combined.means$studied, levels = c("notstudied", "studied"))
+
+#plot
+ggplot(combined.means, aes(x = freq,
+                           y = RT,
+                           fill = freq)) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "grey50")) +
+  labs(x = "Word Frequency",
+       y = "Raw RT",
+       title = "Speeded Naming Raw RTs by Word Frequency - Block 2") +
+  guides(fill = guide_legend(title = "Word Frequency")) +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4) +
+  theme(axis.text = element_text(size = rel(0.5)))  +
+  theme(title = element_text(face = "bold", size = rel(1.75)),
+        axis.text = element_text(face = "bold", size = rel(1.75)),
+        axis.title = element_text(face = "bold", size = rel(1.75)),
+        legend.text = element_text(face = "bold", size = rel(1.75)),
+        strip.text = element_text(face = "bold", size = rel(1.75)),
+        legend.position = "right") +
+  coord_cartesian(ylim = c(250, 800))
+
+
+ggsave("~/Desktop/IE1_WFE_Block2_rawRTs.pdf", width = 13, height = 7, units = "in", dpi = 150)
+
+#anova
+pander(anova(aov(RT ~ age*freq, data = combined.bl2)))
+```
+
+##### ANCOVA
+```{r}
+data.recog <- subset(data.combined, data_set == "data2")
+data.recog$age <- as.factor(data.recog$age)
+data.recog$recog.ACC <- as.factor(data.recog$recog.ACC)
+data.recog$freq <- as.factor(data.recog$freq)
+data.recog$studied <- as.factor(data.recog$studied)
+
+model1 <- aov(recog.rt.trim ~ age*studied + Error(Subject), data = data.recog)
+summary(model1)
+
+model2 <- aov(recog.rt.trim ~ age*studied + recog.ACC, data = data.recog)
+summary(model2)
+```
+
+##### Priming Scores
+```{r}
+#studied vs not studied
+#1
+study1 <- data %>%
+  group_by(Subject) %>%
+  summarize(
+    notstudied_norecog = mean(rt.trim2[which(studied == "notstudied")], na.rm = TRUE),
+    studied_norecog = mean(rt.trim2[which(studied == "studied")], na.rm = TRUE),
+    age = unique(age))
+
+#2
+study2 <- data2 %>%
+  group_by(Subject) %>%
+  summarize(
+    notstudied_recog = mean(rt.trim2[which(studied == "notstudied")], na.rm = TRUE),
+    studied_recog = mean(rt.trim2[which(studied == "studied")], na.rm = TRUE),
+    age = unique(age))
+
+#combine
+study <- full_join(study1, study2)
+
+#create priming scores
+study$priming_norecog <- study$notstudied_norecog - study$studied_norecog
+study$priming_recog <- study$notstudied_recog - study$studied_recog
+
+drops <- c("notstudied_norecog", "studied_norecog", "notstudied_recog", "studied_recog")
+study <- study[ , !(names(study) %in% drops)]
+
+study.long <- gather(study, recog, primingScore, priming_norecog:priming_recog)
+
+study.long$recog <- as.factor(study.long$recog)
+study.long$age <- as.factor(study.long$age)
+
+#means
+priming.means <- summarySE(data = study.long,
+                           measurevar = "primingScore",
+                           groupvars = c("age", "recog"),
+                           na.rm = FALSE,
+                           conf.interval = 0.95,
+                           .drop = TRUE)
+
+kable(priming.means, digits = 2, caption = "Speeded Naming Mean Priming Raw, Trimmed RTs")
+
+#plot
+ggplot(priming.means, aes(x = recog,
+                          y = primingScore,
+                          fill = factor(recog))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "white")) +
+  labs(y = "Raw, Trimmed Priming RT", 
+       title = "Speeded Naming Priming Score (based on raw, trimmed RTs)", 
+       fill = "W or W/o Recog") +
+  geom_errorbar(aes (ymin = primingScore - se, ymax = primingScore + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4)
+
+#anova
+ezanova <- ezANOVA(data = study.long, 
+                   dv = primingScore,
+                   wid = Subject,
+                   within = c("recog"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Priming Scores (based on raw, trimmed RTs)")
+```
+
+### Recognition
+#### Study X Frequency (Hits & Correct Rejections)
+```{r}
+recog.rt <- subset(data2, recog.ACC == "1")
+recog.rt <- subset(recog.rt, Subject != "317")
+
+recog <- recog.rt %>%
+  group_by(Subject) %>%
+  summarize(
+    studied_hf = mean(rt.trim2.r[which(study_freq == "studied_hf")], na.rm = TRUE),
+    studied_lf = mean(rt.trim2.r[which(study_freq == "studied_lf")], na.rm = TRUE),
+    notstudied_hf = mean(rt.trim2.r[which(study_freq == "notstudied_hf")], na.rm = TRUE),
+    notstudied_lf = mean(rt.trim2.r[which(study_freq == "notstudied_lf")], na.rm = TRUE),
+    age = unique(age))
+  
+#data to long format and gather by condition
+recog.long <- gather(recog, type, RT, studied_hf:notstudied_lf) 
+
+recog.means <- summarySE(data = recog.long, 
+                            measurevar = "RT",
+                            groupvars = c("type", "age"))
+
+kable(recog.means, digits = 2, caption = "Recognition Mean Raw, Trimmed RTs")
+
+##delete this stuff 
+recog.means$type <- factor(recog.means$type, levels=c("notstudied_hf", "notstudied_lf", "studied_hf", "studied_lf"))
+
+ggplot(recog.means, aes(x = type,
+                           y = RT)) + 
+  geom_bar(position = "dodge",
+           stat = "identity") +
+  labs(y = "Raw, Trimmed RT", 
+       title = "Recognition Raw, Trimmed RT") +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  scale_fill_manual(values = c("black")) +
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14, face = "bold")) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4)
+
+#anova
+recog.long$study <- with(recog.long, ifelse(type %in% c("notstudied_hf", "notstudied_lf"), "notstudied", "studied"))
+recog.long$freq <- with(recog.long, ifelse(type %in% c("notstudied_hf", "studied_hf"), "HF", "LF"))
+
+ezanova <- ezANOVA(data = recog.long, 
+                   dv = RT,
+                   wid = Subject,
+                   within = c("study", "freq"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Implict Encoding Raw, Trimmed RTs")
+```
+
+#### Study
+```{r}
+#studied vs not studied
+study <- recog.rt %>%
+  group_by(Subject) %>%
+  summarize(
+    notstudied = mean(rt.trim2.r[which(studied == "notstudied")], na.rm = TRUE),
+    studied = mean(rt.trim2.r[which(studied == "studied")], na.rm = TRUE),
+    recog = "no recog", 
+    age = unique(age))
+  
+#data to long format and gather by condition
+study <- gather(study, studied, RT, studied:notstudied)
+
+#means
+study.means <- summarySE(data = study,
+                        measurevar = "RT",
+                        groupvars = c("studied", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(study.means, digits = 2, caption = "Recognition Mean Raw, Trimmed RTs")
+
+#plot
+ggplot(study.means, aes(x = studied,
+                       y = RT)) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "white")) +
+  labs(y = "Raw, Trimmed RT", 
+       title = "Recognition Raw, Trimmed Raw, Trimmed RTs") +
+  geom_errorbar(aes (ymin = RT - se, ymax = RT + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4)
+
+#anova
+ezanova <- ezANOVA(data = study, 
+                   dv = RT,
+                   wid = Subject,
+                   within = c("studied"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Implict Encoding Raw, Trimmed RTs")
+```
+
+## Accuracy
+### Speeded Naming
+#### Study X Frequency
+```{r}
+#studied and freq
+accuracy1 <- data %>%
+  group_by(Subject) %>%
+  summarize(
+    studied_hf = sum(accuracy[which(study_freq == "studied_hf")]/10, na.rm = TRUE),
+    studied_lf = sum(accuracy[which(study_freq == "studied_lf")]/10, na.rm = TRUE),
+    notstudied_hf = sum(accuracy[which(study_freq == "notstudied_hf")]/10, na.rm = TRUE),
+    notstudied_lf = sum(accuracy[which(study_freq == "notstudied_lf")]/10, na.rm = TRUE),
+    age = unique(age),
+    recog = "no recog")
+
+#data to long format and gather by condition
+accuracy1.long <- gather(accuracy1, type, acc, studied_hf:notstudied_lf) 
+
+accuracy2 <- data2 %>%
+  group_by(Subject) %>%
+  summarize(
+    studied_hf = sum(accuracy[which(study_freq == "studied_hf")]/10, na.rm = TRUE),
+    studied_lf = sum(accuracy[which(study_freq == "studied_lf")]/10, na.rm = TRUE),
+    notstudied_hf = sum(accuracy[which(study_freq == "notstudied_hf")]/10, na.rm = TRUE),
+    notstudied_lf = sum(accuracy[which(study_freq == "notstudied_lf")]/10, na.rm = TRUE),
+    age = unique(age),
+    recog = "w/ recog")
+
+#data to long format and gather by condition
+accuracy2.long <- gather(accuracy2, type, acc, studied_hf:notstudied_lf) 
+
+accuracy.combined <- full_join(accuracy1.long, accuracy2.long)
+
+#add in separate freq and study columns
+accuracy.combined$freq <- with(accuracy.combined, ifelse(type == "studied_hf", "HF",
+                                    ifelse(type == "studied_lf", "LF",
+                                           ifelse(type == "notstudied_hf", "HF",
+                                                  ifelse(type == "notstudied_lf", "LF", NA)))))
+
+accuracy.combined$studied <- with(accuracy.combined, ifelse(type == "studied_hf", "studied",
+                                            ifelse(type == "studied_lf", "studied",
+                                                   ifelse(type == "notstudied_hf", "notstudied",
+                                                          ifelse(type == "notstudied_lf", "notstudied", NA)))))
+
+#means
+combined.means <- summarySE(data = accuracy.combined,
+                        measurevar = "acc",
+                        groupvars = c("recog", "type", "age"),
+                        na.rm = FALSE,
+                        conf.interval = 0.95,
+                        .drop = TRUE)
+
+kable(combined.means, digits = 2, caption = "Speeded Naming Mean Accuracy")
+
+#plot
+ggplot(combined.means, aes(x = type,
+                           y = acc,
+                           fill = factor(recog))) +
+geom_bar(position = "dodge",
+         stat = "identity",
+         color = "black") +
+  scale_fill_manual(values = c("black", "white")) +
+  labs(y = "Accuracy (%)", 
+       title = "Speeded Naming w/ and w/o Recog Accuracy", 
+       fill = "W or W/o Recog") +
+  geom_errorbar(aes (ymin = acc - se, ymax = acc + se),
+                position = position_dodge(.9), width = .1) +
+  theme_bw() +
+          coord_cartesian(ylim = c(.6, 1)) +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4) + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+#anova
+ezanova <- ezANOVA(data = accuracy.combined, 
+                   dv = acc,
+                   wid = Subject,
+                   within = c("studied", "freq", "recog"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Implict Encoding Accuracy")
+```
+
+### Recognition
+#### Study X Frequency
+```{r}
+recognition <- data2 %>%
+  group_by(Subject) %>%
+  summarize(
+    studied_hf = sum(recog.ACC[which(study_freq == "studied_hf")]/10, na.rm = TRUE),
+    studied_lf = sum(recog.ACC[which(study_freq == "studied_lf")]/10, na.rm = TRUE),
+    notstudied_hf = sum(recog.ACC[which(study_freq == "notstudied_hf")]/10, na.rm = TRUE),
+    notstudied_lf = sum(recog.ACC[which(study_freq == "notstudied_lf")]/10, na.rm = TRUE),
+    age = unique(age))
+
+recog.long <- gather(recognition, type, accuracy, studied_hf:notstudied_lf) 
+
+recog <- summarySE(data = recog.long,
+                    measurevar = "accuracy",
+                    groupvars = c("type", "age"),
+                    na.rm = TRUE,
+                    conf.interval = 0.95,
+                    .drop = TRUE)
+
+kable(recog, digits = 2, caption = "Recognition Accuracy")
+
+recog$type <- factor(recog$type, levels=c("notstudied_hf", "notstudied_lf", "studied_hf", "studied_lf"))
+
+ggplot(recog, aes(x = type,
+                  y = accuracy)) + 
+  geom_bar(position = "dodge",
+           stat = "identity",
+           color = "black") +
+  labs(x = "Trial Type", 
+       y = "Accuracy (%)", 
+       title = "Recognition Accuracy") +
+  geom_errorbar(aes (ymin = accuracy - se, ymax = accuracy + se),
+                position = position_dodge(.9), width = .1) +
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14,face = "bold")) +
+  scale_fill_manual(values = c("black", "white")) +
+  theme_bw() +
+          coord_cartesian(ylim = c(.6, 1)) + 
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_wrap( ~age, scales = "free_x", nrow = 1, ncol = 4)
+
+#anova
+recog.long$study <- with(recog.long, ifelse(type %in% c("notstudied_hf", "notstudied_lf"), "notstudied", "studied"))
+recog.long$freq <- with(recog.long, ifelse(type %in% c("notstudied_hf", "studied_hf"), "HF", "LF"))
+
+ezanova <- ezANOVA(data = recog.long, 
+                   dv = accuracy,
+                   wid = Subject,
+                   within = c("study", "freq"),
+                   between = age)
+
+#pander it to make it pretty
+pander(ezanova$ANOVA, caption = "Implict Encoding Recog Accuracy")
+```
+
+# Demographics
+```{r}
+YAs <- read.csv("/Volumes/j.nicosiaSD 1/Cog Psych Lab/HSFollowUp/paperwork/IE_YA_paperdata.csv")
+OAs <- read.csv("/Volumes/j.nicosiaSD 1/Cog Psych Lab/HSFollowUp/paperwork/IE_OA_paperdata.csv")
+demos <- full_join(YAs, OAs)
+demos$ageGroup <- with(demos, ifelse(Subject < 400, "YA", "OA"))
+```
+
+## Age
+```{r}
+age.means <- summarySE(data = demos,
+                           measurevar = "Age",
+                           groupvars = c("ageGroup"),
+                           na.rm = FALSE,
+                           conf.interval = 0.95,
+                           .drop = TRUE)
+
+kable(age.means, digits = 2, caption = "Age Group Means")
+
+pander(t.test(YAs$Age, OAs$Age))
+```
+
+## Edu
+```{r}
+edu.means <- summarySE(data = demos,
+                           measurevar = "Edu",
+                           groupvars = c("ageGroup"),
+                           na.rm = FALSE,
+                           conf.interval = 0.95,
+                           .drop = TRUE)
+
+kable(edu.means, digits = 2, caption = "Edu Group Means")
+
+pander(t.test(YAs$Edu, OAs$Edu))
+```
+
+## Shipley
+```{r}
+vocab.means <- summarySE(data = demos,
+                           measurevar = "Shipley",
+                           groupvars = c("ageGroup"),
+                           na.rm = FALSE,
+                           conf.interval = 0.95,
+                           .drop = TRUE)
+
+kable(vocab.means, digits = 2, caption = "Shipley Group Means")
+
+pander(t.test(YAs$Shipley, OAs$Shipley))
+```
+
+# Permutation Testing
+```{r}
+
+```
